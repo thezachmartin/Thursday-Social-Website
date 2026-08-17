@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta
+      name="description"
+      content="Join Thursday Social and receive the weekly meetup location by text."
+    >
+    <title>Thursday Social Club</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=DM+Serif+Display&display=swap"
+      rel="stylesheet"
+    >
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <video
+      class="background"
+      autoplay
+      muted
+      loop
+      playsinline
+      poster="./assets/background-poster.jpg"
+      aria-hidden="true"
+    >
+      <source src="./assets/background.webm" type="video/webm">
+      <source src="./assets/background.mp4" type="video/mp4">
+    </video>
+    <div class="overlay" aria-hidden="true"></div>
+
+    <main class="signup">
+      <header class="brand">
+        <img
+          class="brand-logo"
+          src="./assets/thursday-social-logo.png"
+          alt="Thursday Social Club"
+          width="402"
+          height="363"
+        >
+      </header>
+
+      <form id="signup-form" class="signup-form">
+        <div class="field">
+          <label for="phone">Phone number</label>
+          <div class="phone-input">
+            <span class="phone-prefix" aria-hidden="true">+1</span>
+            <input
+              id="phone"
+              name="phone"
+              type="tel"
+              autocomplete="tel-national"
+              inputmode="tel"
+              placeholder="(555) 555-5555"
+              aria-describedby="phone-hint"
+              maxlength="16"
+              required
+            >
+          </div>
+          <span id="phone-hint" class="field-hint">
+            U.S. phone numbers only
+          </span>
+        </div>
+
+        <label class="consent">
+          <input id="consent" name="consent" type="checkbox" required>
+          <span>
+            I agree to receive recurring Thursday Social texts. Message and
+            data rates may apply. Reply STOP to opt out.
+          </span>
+        </label>
+
+        <button type="submit">Join the club</button>
+        <p id="form-status" class="form-status" role="status" aria-live="polite"></p>
+      </form>
+
+      <section
+        id="signup-success"
+        class="signup-success"
+        aria-labelledby="success-title"
+        tabindex="-1"
+        hidden
+      >
+        <span class="success-icon" aria-hidden="true">✓</span>
+        <p class="success-kicker">You're on the list</p>
+        <h2 id="success-title">Welcome to the club!</h2>
+        <p class="success-message">
+          We'll text you every Thursday at 9 AM with that evening's event
+          location.
+        </p>
+        <p class="success-message">
+          You should receive a welcome text shortly.
+        </p>
+        <p class="success-phone">
+          Updates will be sent to <strong id="success-phone"></strong>
+        </p>
+        <button id="join-another" class="success-reset" type="button">
+          Use another number
+        </button>
+      </section>
+
+      <div id="signup-description">
+        <p class="description description-primary">
+          Every Thursday morning at 9 AM, we will text you the location for the
+          event that night.
+        </p>
+        <p class="description description-secondary">
+          No RSVP needed. Just show up, meet new people, and have a great time!
+        </p>
+      </div>
+    </main>
+
+    <script src="./config.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>

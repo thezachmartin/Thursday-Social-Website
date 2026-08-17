@@ -1,0 +1,94 @@
+.admin-page {
+  display: grid;
+  background:
+    linear-gradient(rgb(0 35 5 / 18%), rgb(0 24 3 / 35%)),
+    radial-gradient(circle at center, transparent 20%, rgb(0 24 3 / 42%)),
+    #004806;
+  color: #1a1a1a;
+  place-items: center;
+}
+
+.admin-shell {
+  width: min(100% - 2rem, 42rem);
+  padding-block: 2rem;
+}
+
+.admin-card {
+  padding: clamp(1.5rem, 5vw, 3rem);
+  border: 1px solid rgb(17 17 17 / 70%);
+  border-radius: 1rem;
+  background: #fffaf0;
+  box-shadow: 0 1.5rem 4rem rgb(39 16 0 / 30%);
+}
+
+.admin-card h1 {
+  color: #1a1a1a;
+  font-size: clamp(2.5rem, 10vw, 4rem);
+  line-height: 0.95;
+}
+
+.admin-kicker {
+  margin: 0 0 0.75rem;
+  color: #bd2b19;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.admin-intro {
+  margin: 1rem 0 1.5rem;
+  color: #555;
+}
+
+.demo-notice {
+  margin: 1.5rem 0 0;
+  color: #765b41;
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+#login-form button {
+  background: #c9271c;
+}
+
+#login-form button:hover {
+  background: #a82018;
+}
+
+.admin-header {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.secondary-button {
+  min-height: auto;
+  padding: 0.75rem 1rem;
+  white-space: nowrap;
+}
+
+.empty-state {
+  padding: 1.5rem;
+  border: 1px dashed #b9a994;
+  border-radius: 0.75rem;
+  background: #f7efe3;
+}
+
+.empty-state h2,
+.empty-state p {
+  margin: 0;
+}
+
+.empty-state p {
+  margin-top: 0.5rem;
+  color: #675d52;
+  line-height: 1.5;
+}
+
+@media (max-width: 32rem) {
+  .admin-header {
+    display: grid;
+  }
+}
