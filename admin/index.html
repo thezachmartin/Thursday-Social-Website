@@ -48,10 +48,6 @@
           <p id="login-status" class="form-status" role="status" aria-live="polite"></p>
         </form>
 
-        <p class="demo-notice">
-          Temporary demo access only. AWS Cognito authentication is still required
-          before this area can contain sensitive data.
-        </p>
       </section>
 
       <section
@@ -68,16 +64,23 @@
           <button id="sign-out" class="secondary-button" type="button">Sign out</button>
         </div>
 
-        <p class="admin-intro">
-          The protected admin route is ready for its management tools.
-        </p>
-        <div class="empty-state">
-          <h2>Admin dashboard</h2>
-          <p>Connect AWS Cognito and the admin API before adding private data.</p>
+        <p class="admin-intro">View the current Thursday Social audience.</p>
+        <div class="subscriber-count" aria-labelledby="subscriber-count-title">
+          <h2 id="subscriber-count-title">Active subscribers</h2>
+          <strong id="active-count" class="count-value" aria-live="polite">—</strong>
+          <p id="count-status" class="count-status" role="status" aria-live="polite">
+            Loading subscriber count…
+          </p>
         </div>
       </section>
     </main>
 
+    <script src="../config.js"></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.3.15/dist/amazon-cognito-identity.min.js"
+      integrity="sha384-tmLe+My/drouBT8LDBDX54/GtvpwceGWUwRKXHJfWra2DlJ/598zVtizduWyMqz5"
+      crossorigin="anonymous"
+    ></script>
     <script src="./admin.js"></script>
   </body>
 </html>
