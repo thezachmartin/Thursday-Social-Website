@@ -70,6 +70,34 @@ function getCountError(status) {
   return "The subscriber count service is unavailable. Please try again later.";
 }
 
+function getAuthenticationError(error) {
+  const errorCode = error?.code ?? error?.name;
+
+  if (
+    errorCode === "NotAuthorizedException" ||
+    errorCode === "UserNotFoundException"
+  ) {
+    return "The email or password is incorrect.";
+  }
+
+  if (errorCode === "PasswordResetRequiredException") {
+    return "This admin account requires a password reset before sign-in.";
+  }
+
+  if (errorCode === "UserNotConfirmedException") {
+    return "This admin account has not been confirmed.";
+  }
+
+  if (
+    errorCode === "LimitExceededException" ||
+    errorCode === "TooManyRequestsException"
+  ) {
+    return "Too many sign-in attempts. Please wait a moment and try again.";
+  }
+
+  return "The authentication service is unavailable. Please try again.";
+}
+
 async function loadActiveCount(idToken) {
   activeCount.textContent = "—";
   countStatus.textContent = "Loading subscriber count…";
@@ -173,19 +201,7 @@ loginForm.addEventListener("submit", (event) => {
     },
     onFailure(error) {
       submitButton.disabled = false;
-
-      if (
-        error?.code === "NotAuthorizedException" ||
-        error?.code === "UserNotFoundException"
-      ) {
-        setLoginStatus("The email or password is incorrect.", "error");
-        return;
-      }
-
-      setLoginStatus(
-        "The authentication service is unavailable. Please try again.",
-        "error",
-      );
+      setLoginStatus(getAuthenticationError(error), "error");
     },
     newPasswordRequired() {
       submitButton.disabled = false;
