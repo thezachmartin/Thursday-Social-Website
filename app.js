@@ -13,6 +13,42 @@ function setStatus(message, state = "") {
   statusMessage.dataset.state = state;
 }
 
+async function getResponseMessage(response) {
+  try {
+    const body = await response.json();
+
+    if (typeof body.message === "string" && body.message.trim()) {
+      return body.message.trim();
+    }
+  } catch {
+    // The status-specific message below is sufficient for non-JSON responses.
+  }
+
+  return "";
+}
+
+async function getSignupError(response) {
+  const responseMessage = await getResponseMessage(response);
+
+  if (response.status === 400 || response.status === 422) {
+    return responseMessage || "Check your phone number and consent, then try again.";
+  }
+
+  if (response.status === 409) {
+    return responseMessage || "That phone number is already signed up.";
+  }
+
+  if (response.status === 429) {
+    return "Too many signup attempts. Please wait a moment and try again.";
+  }
+
+  if (response.status >= 500) {
+    return "The signup service is temporarily unavailable. Please try again soon.";
+  }
+
+  return responseMessage || "We couldn't complete your signup. Please try again.";
+}
+
 function normalizeUsPhoneNumber(value) {
   const trimmedValue = value.trim();
 
@@ -65,6 +101,7 @@ joinAnotherButton.addEventListener("click", () => {
   successPanel.hidden = true;
   form.hidden = false;
   signupDescription.hidden = false;
+  setStatus("");
   phoneInput.focus();
 });
 
@@ -95,26 +132,29 @@ form.addEventListener("submit", async (event) => {
   setStatus("Joining...");
 
   try {
-    if (config.apiEndpoint) {
-      const response = await fetch(config.apiEndpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+    if (!config.apiEndpoint) {
+      throw new Error("Signup endpoint is not configured.");
+    }
 
-      if (!response.ok) {
-        throw new Error(`Signup failed with status ${response.status}`);
-      }
-    } else {
-      await new Promise((resolve) => setTimeout(resolve, 600));
+    const response = await fetch(config.apiEndpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      setStatus(await getSignupError(response), "error");
+      return;
     }
 
     form.reset();
     setStatus("");
     showSuccess(normalizedPhone);
-  } catch (error) {
-    console.error(error);
-    setStatus("We couldn't add you right now. Please try again.", "error");
+  } catch {
+    setStatus(
+      "We couldn't reach the signup service. Check your connection and try again.",
+      "error",
+    );
   } finally {
     submitButton.disabled = false;
   }

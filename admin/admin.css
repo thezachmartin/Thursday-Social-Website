@@ -41,19 +41,16 @@
   color: #555;
 }
 
-.demo-notice {
-  margin: 1.5rem 0 0;
-  color: #765b41;
-  font-size: 0.75rem;
-  line-height: 1.5;
-}
-
 #login-form button {
   background: #c9271c;
 }
 
 #login-form button:hover {
   background: #a82018;
+}
+
+#login-status[data-state="error"] {
+  color: #a82018;
 }
 
 .admin-header {
@@ -69,21 +66,31 @@
   white-space: nowrap;
 }
 
-.empty-state {
+.subscriber-count {
+  display: grid;
+  gap: 0.5rem;
   padding: 1.5rem;
-  border: 1px dashed #b9a994;
+  border: 1px solid #b9a994;
   border-radius: 0.75rem;
   background: #f7efe3;
+  text-align: center;
 }
 
-.empty-state h2,
-.empty-state p {
+.subscriber-count h2,
+.subscriber-count p {
   margin: 0;
 }
 
-.empty-state p {
-  margin-top: 0.5rem;
+.count-value {
+  color: #004806;
+  font-family: "DM Serif Display", serif;
+  font-size: clamp(3rem, 15vw, 5rem);
+  line-height: 1;
+}
+
+.count-status {
   color: #675d52;
+  font-size: 0.85rem;
   line-height: 1.5;
 }
 
