@@ -5,11 +5,201 @@ const loginStatus = document.querySelector("#login-status");
 const signOutButton = document.querySelector("#sign-out");
 const activeCount = document.querySelector("#active-count");
 const countStatus = document.querySelector("#count-status");
+const messageForm = document.querySelector("#message-form");
+const messageBody = document.querySelector("#message-body");
+const characterCount = document.querySelector("#character-count");
+const septetCount = document.querySelector("#septet-count");
+const segmentCount = document.querySelector("#segment-count");
+const remainingCount = document.querySelector("#remaining-count");
+const segmentProgress = document.querySelector("#segment-progress");
+const segmentLabel = document.querySelector("#segment-label");
+const segmentUsage = document.querySelector("#segment-usage");
+const encodingBadge = document.querySelector("#encoding-badge");
+const messageError = document.querySelector("#message-error");
+const sendMessageButton = document.querySelector("#send-message");
+const segmentCost = document.querySelector("#segment-cost");
+const increaseSegmentCost = document.querySelector("#increase-segment-cost");
+const decreaseSegmentCost = document.querySelector("#decrease-segment-cost");
+const estimatedCost = document.querySelector("#estimated-cost");
+const costSubscribers = document.querySelector("#cost-subscribers");
+const costSegments = document.querySelector("#cost-segments");
 const config = window.THURSDAY_SOCIAL_CONFIG ?? {};
 const cognitoConfig = config.cognito ?? {};
+const composerConfig = config.adminComposer ?? {};
 const Cognito = window.AmazonCognitoIdentity;
+const previewSubscriberCount = (() => {
+  const isLocalhost =
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1";
+  const value = Number(
+    new URLSearchParams(window.location.search).get("subscribers"),
+  );
+
+  return isLocalhost && Number.isInteger(value) && value >= 0 ? value : null;
+})();
+const GSM_BASIC_CHARACTERS = new Set(
+  Array.from(
+    "@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà",
+  ),
+);
+const GSM_EXTENSION_CHARACTERS = new Set(Array.from("\f^{}\\[~]|€"));
+const SINGLE_SEGMENT_SEPTETS = 160;
+const MULTI_SEGMENT_SEPTETS = 153;
+const SINGLE_SEGMENT_UNICODE_UNITS = 70;
+const MULTI_SEGMENT_UNICODE_UNITS = 67;
+const singleSegmentTarget =
+  Number.isInteger(composerConfig.singleSegmentTarget) &&
+  composerConfig.singleSegmentTarget > 0
+    ? composerConfig.singleSegmentTarget
+    : SINGLE_SEGMENT_SEPTETS;
 let currentUser = null;
 let countRequestController = null;
+let activeSubscriberCount = null;
+let currentSegments = 0;
+
+segmentCost.value =
+  Number.isFinite(composerConfig.costPerSegment) &&
+  composerConfig.costPerSegment >= 0
+    ? composerConfig.costPerSegment
+    : 0.012;
+
+function getMessageMetrics(message) {
+  let septets = 0;
+  let isGsm = true;
+
+  for (const character of message) {
+    if (GSM_BASIC_CHARACTERS.has(character)) {
+      septets += 1;
+    } else if (GSM_EXTENSION_CHARACTERS.has(character)) {
+      septets += 2;
+    } else {
+      isGsm = false;
+    }
+  }
+
+  const messageUnits = isGsm ? septets : message.length;
+  const singleSegmentCapacity = isGsm
+    ? SINGLE_SEGMENT_SEPTETS
+    : SINGLE_SEGMENT_UNICODE_UNITS;
+  const multiSegmentCapacity = isGsm
+    ? MULTI_SEGMENT_SEPTETS
+    : MULTI_SEGMENT_UNICODE_UNITS;
+  const segments =
+    messageUnits === 0
+      ? 0
+      : messageUnits <= singleSegmentCapacity
+        ? 1
+        : Math.ceil(messageUnits / multiSegmentCapacity);
+  const segmentCapacity =
+    segments <= 1
+      ? singleSegmentCapacity
+      : segments * multiSegmentCapacity;
+  const usedInCurrentSegment =
+    segments <= 1
+      ? messageUnits
+      : messageUnits - (segments - 1) * multiSegmentCapacity;
+
+  return {
+    characters: Array.from(message).length,
+    isGsm,
+    messageUnits,
+    remaining:
+      segments <= 1
+        ? singleSegmentCapacity - messageUnits
+        : multiSegmentCapacity - usedInCurrentSegment,
+    segmentCapacity,
+    segmentSize: segments <= 1 ? singleSegmentCapacity : multiSegmentCapacity,
+    segments,
+    septets,
+    usedInCurrentSegment,
+  };
+}
+
+function updateCostEstimate() {
+  const cost = Number(segmentCost.value);
+  costSubscribers.textContent =
+    activeSubscriberCount === null
+      ? "—"
+      : activeSubscriberCount.toLocaleString();
+  costSegments.textContent = currentSegments.toLocaleString();
+
+  if (
+    activeSubscriberCount === null ||
+    !Number.isFinite(cost) ||
+    cost < 0
+  ) {
+    estimatedCost.textContent = "—";
+    return;
+  }
+
+  estimatedCost.textContent = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(activeSubscriberCount * currentSegments * cost);
+}
+
+function adjustSegmentCost(direction) {
+  const currentCost = Number(segmentCost.value);
+  const step = Number(segmentCost.step);
+  const nextCost = Math.max(
+    0,
+    (Number.isFinite(currentCost) ? currentCost : 0) + direction * step,
+  );
+
+  segmentCost.value = nextCost.toFixed(3);
+  updateCostEstimate();
+}
+
+function updateComposer() {
+  const metrics = getMessageMetrics(messageBody.value);
+  const isNearLimit =
+    metrics.isGsm &&
+    metrics.septets > 150 &&
+    metrics.septets <= singleSegmentTarget;
+  const exceedsSingleSegment =
+    metrics.isGsm && metrics.septets > singleSegmentTarget;
+  const progressUnits = metrics.isGsm
+    ? metrics.septets
+    : metrics.messageUnits;
+  const progressCapacity = metrics.isGsm
+    ? singleSegmentTarget
+    : metrics.segmentSize;
+  const progress = Math.min(
+    (progressUnits / progressCapacity) * 100,
+    100,
+  );
+
+  currentSegments = metrics.segments;
+  characterCount.textContent = metrics.characters.toLocaleString();
+  septetCount.textContent = metrics.isGsm
+    ? metrics.septets.toLocaleString()
+    : "—";
+  segmentCount.textContent = metrics.segments.toLocaleString();
+  remainingCount.textContent = metrics.remaining.toLocaleString();
+  segmentProgress.style.width = `${Number.isFinite(progress) ? progress : 0}%`;
+  segmentLabel.textContent = `Segment ${Math.max(metrics.segments, 1)}`;
+  segmentUsage.textContent = metrics.isGsm
+    ? `${metrics.septets.toLocaleString()} / ${singleSegmentTarget.toLocaleString()} characters`
+    : `${metrics.messageUnits.toLocaleString()} / ${metrics.segmentCapacity.toLocaleString()} Unicode units`;
+  encodingBadge.textContent = metrics.isGsm ? "GSM-7" : "Non-GSM";
+  encodingBadge.dataset.encoding = metrics.isGsm ? "gsm" : "unicode";
+  messageForm.dataset.invalid = String(!metrics.isGsm);
+  messageForm.dataset.warning = String(isNearLimit);
+  messageForm.dataset.overLimit = String(exceedsSingleSegment);
+  sendMessageButton.disabled = !messageBody.value || !metrics.isGsm;
+
+  if (!metrics.isGsm) {
+    messageError.textContent =
+      "This message contains non-GSM characters. Remove them before sending.";
+  } else if (exceedsSingleSegment) {
+    messageError.textContent =
+      `This message uses ${metrics.segments.toLocaleString()} SMS segments and will cost more to send.`;
+  } else {
+    messageError.textContent = "";
+  }
+
+  updateCostEstimate();
+}
 
 function setLoginStatus(message, state = "") {
   loginStatus.textContent = message;
@@ -54,6 +244,8 @@ function signOut(message = "") {
   user?.signOut();
   loginForm.reset();
   activeCount.textContent = "—";
+  activeSubscriberCount = null;
+  updateCostEstimate();
   countStatus.textContent = "";
   showLogin(message);
 }
@@ -102,6 +294,14 @@ async function loadActiveCount(idToken) {
   activeCount.textContent = "—";
   countStatus.textContent = "Loading subscriber count…";
 
+  if (previewSubscriberCount !== null) {
+    activeSubscriberCount = previewSubscriberCount;
+    activeCount.textContent = previewSubscriberCount.toLocaleString();
+    countStatus.textContent = "Local preview subscriber total.";
+    updateCostEstimate();
+    return;
+  }
+
   if (!config.activeCountEndpoint) {
     countStatus.textContent = "The subscriber count service is not configured.";
     return;
@@ -143,6 +343,8 @@ async function loadActiveCount(idToken) {
     }
 
     activeCount.textContent = body.count.toLocaleString();
+    activeSubscriberCount = body.count;
+    updateCostEstimate();
     countStatus.textContent = "Current active subscriber total.";
   } catch (error) {
     if (error.name !== "AbortError") {
@@ -218,6 +420,16 @@ signOutButton.addEventListener("click", () => {
   signOut();
   document.querySelector("#email").focus();
 });
+
+messageBody.addEventListener("input", updateComposer);
+segmentCost.addEventListener("input", updateCostEstimate);
+increaseSegmentCost.addEventListener("click", () => adjustSegmentCost(1));
+decreaseSegmentCost.addEventListener("click", () => adjustSegmentCost(-1));
+messageForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+});
+
+updateComposer();
 
 if (userPool) {
   const storedUser = userPool.getCurrentUser();
