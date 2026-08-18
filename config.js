@@ -3,6 +3,10 @@ window.THURSDAY_SOCIAL_CONFIG = {
     "https://gacse1myqa.execute-api.us-east-1.amazonaws.com/prod/signup",
   activeCountEndpoint:
     "https://gacse1myqa.execute-api.us-east-1.amazonaws.com/prod/admin/active-count",
+  adminComposer: {
+    singleSegmentTarget: 160,
+    costPerSegment: 0.012,
+  },
   cognito: {
     region: "us-east-1",
     userPoolId: "us-east-1_MgIIQ8dKB",

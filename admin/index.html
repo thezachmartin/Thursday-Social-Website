@@ -64,13 +64,137 @@
           <button id="sign-out" class="secondary-button" type="button">Sign out</button>
         </div>
 
-        <p class="admin-intro">View the current Thursday Social audience.</p>
-        <div class="subscriber-count" aria-labelledby="subscriber-count-title">
-          <h2 id="subscriber-count-title">Active subscribers</h2>
-          <strong id="active-count" class="count-value" aria-live="polite">—</strong>
-          <p id="count-status" class="count-status" role="status" aria-live="polite">
-            Loading subscriber count…
-          </p>
+        <p class="admin-intro">
+          Compose a text and estimate the cost before sending it to the club.
+        </p>
+
+        <div class="admin-layout">
+          <form id="message-form" class="composer">
+            <div class="composer-heading">
+              <div>
+                <p class="section-kicker">New broadcast</p>
+                <h2>Message subscribers</h2>
+              </div>
+              <span id="encoding-badge" class="encoding-badge" data-encoding="gsm">
+                GSM-7
+              </span>
+            </div>
+
+            <div class="message-field">
+              <label for="message-body">Message</label>
+              <textarea
+                id="message-body"
+                name="message"
+                rows="7"
+                placeholder="Hey Thursday Social! Tonight we're meeting at..."
+                aria-describedby="message-guidance message-error"
+                required
+              ></textarea>
+              <div class="message-meta">
+                <span id="message-guidance">GSM-7 messages cost less to send.</span>
+                <span><strong id="character-count">0</strong> characters</span>
+              </div>
+            </div>
+
+            <div class="message-stats" aria-live="polite">
+              <div class="message-stat">
+                <span>Characters</span>
+                <strong id="septet-count">0</strong>
+              </div>
+              <div class="message-stat">
+                <span>Segments</span>
+                <strong id="segment-count">0</strong>
+              </div>
+              <div class="message-stat">
+                <span>Remaining</span>
+                <strong id="remaining-count">160</strong>
+              </div>
+            </div>
+
+            <div class="segment-meter" aria-hidden="true">
+              <span id="segment-progress"></span>
+            </div>
+            <div class="segment-caption">
+              <span id="segment-label">Segment 1</span>
+              <span id="segment-usage">0 / 160 characters</span>
+            </div>
+
+            <p id="message-error" class="composer-error" role="status" aria-live="polite"></p>
+            <button id="send-message" class="send-button" type="submit" disabled>
+              Send message
+            </button>
+            <p class="send-note">Sending is not connected to AWS yet.</p>
+          </form>
+
+          <aside class="broadcast-summary" aria-label="Broadcast estimate">
+            <div class="subscriber-count" aria-labelledby="subscriber-count-title">
+              <span class="summary-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+              </span>
+              <div>
+                <h2 id="subscriber-count-title">Active subscribers</h2>
+                <strong id="active-count" class="count-value" aria-live="polite">—</strong>
+                <p id="count-status" class="count-status" role="status" aria-live="polite">
+                  Loading subscriber count…
+                </p>
+              </div>
+            </div>
+
+            <div class="cost-card">
+              <p class="section-kicker">Estimated total</p>
+              <strong id="estimated-cost" class="cost-value" aria-live="polite">—</strong>
+              <div class="cost-formula">
+                <span><strong id="cost-subscribers">—</strong> subscribers</span>
+                <span aria-hidden="true">×</span>
+                <span><strong id="cost-segments">0</strong> segments</span>
+                <span aria-hidden="true">×</span>
+                <div class="cost-input">
+                  <label class="sr-only" for="segment-cost">
+                    Cost per segment in dollars
+                  </label>
+                  <span aria-hidden="true">$</span>
+                  <input
+                    id="segment-cost"
+                    name="segment-cost"
+                    type="number"
+                    min="0"
+                    step="0.001"
+                    value="0.012"
+                    inputmode="decimal"
+                    aria-label="Cost per segment in dollars"
+                  >
+                  <span class="cost-steppers">
+                    <button
+                      id="increase-segment-cost"
+                      type="button"
+                      aria-label="Increase cost per segment"
+                    >
+                      <svg viewBox="0 0 12 8" aria-hidden="true">
+                        <path d="m1 7 5-5 5 5"></path>
+                      </svg>
+                    </button>
+                    <button
+                      id="decrease-segment-cost"
+                      type="button"
+                      aria-label="Decrease cost per segment"
+                    >
+                      <svg viewBox="0 0 12 8" aria-hidden="true">
+                        <path d="m1 1 5 5 5-5"></path>
+                      </svg>
+                    </button>
+                  </span>
+                </div>
+              </div>
+              <p class="cost-disclaimer">
+                Estimate only. Actual carrier costs may vary.
+              </p>
+            </div>
+          </aside>
         </div>
       </section>
     </main>
