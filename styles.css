@@ -238,8 +238,9 @@ button:disabled {
   margin: 0;
   color: #004806;
   font-family: "DM Serif Display", serif;
-  font-size: clamp(2rem, 8vw, 2.75rem);
+  font-size: clamp(1.5rem, 7vw, 2.75rem);
   line-height: 1;
+  white-space: nowrap;
 }
 
 .success-message {
