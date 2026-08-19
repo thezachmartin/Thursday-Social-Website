@@ -7,6 +7,9 @@ const successPhone = document.querySelector("#success-phone");
 const joinAnotherButton = document.querySelector("#join-another");
 const signupDescription = document.querySelector("#signup-description");
 const config = window.THURSDAY_SOCIAL_CONFIG ?? {};
+const isLocalPreview = ["localhost", "127.0.0.1", "[::1]"].includes(
+  window.location.hostname,
+);
 
 function setStatus(message, state = "") {
   statusMessage.textContent = message;
@@ -132,6 +135,13 @@ form.addEventListener("submit", async (event) => {
   setStatus("Joining...");
 
   try {
+    if (isLocalPreview) {
+      form.reset();
+      setStatus("");
+      showSuccess(normalizedPhone);
+      return;
+    }
+
     if (!config.apiEndpoint) {
       throw new Error("Signup endpoint is not configured.");
     }
