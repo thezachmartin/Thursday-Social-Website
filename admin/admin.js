@@ -32,7 +32,6 @@ const confirmationWarning = document.querySelector("#confirmation-warning");
 const confirmSendButton = document.querySelector("#confirm-send");
 const cancelSendButton = document.querySelector("#cancel-send");
 const jobPanel = document.querySelector("#job-panel");
-const jobStatus = document.querySelector("#job-status");
 const jobSent = document.querySelector("#job-sent");
 const jobFailed = document.querySelector("#job-failed");
 const jobProgressTrack = document.querySelector(".job-progress-track");
@@ -182,8 +181,6 @@ function updateComposer() {
     (messageBody.value ? currentEstimate.errors[0] : null) ??
     (!canSubmitBroadcast && messageBody.value
       ? "Broadcast submission is enabled only on the configured production host."
-      : !core.canStartBroadcast(currentJobStatus)
-        ? "Wait for the current broadcast to finish before starting another."
       : "");
   reviewButton.disabled =
     !currentEstimate.isValid ||
@@ -278,8 +275,6 @@ function openConfirmation() {
   }
 
   if (!core.canStartBroadcast(currentJobStatus)) {
-    messageError.textContent =
-      "Wait for the current broadcast to finish before starting another.";
     return;
   }
 
@@ -321,17 +316,20 @@ function clearCurrentJob() {
 function renderJob(job) {
   const percentage = core.getProgressPercentage(job);
   const isComplete = job.status === "completed" && percentage === 100;
+  const isTerminal = core.TERMINAL_JOB_STATUSES.has(job.status);
   currentJobStatus = job.status;
   jobLookupFailures = 0;
   jobPanel.hidden = false;
-  jobStatus.textContent = job.status;
-  jobStatus.dataset.status = job.status;
+  jobPanel.dataset.state = isComplete
+    ? "complete"
+    : isTerminal
+      ? "failed"
+      : "loading";
   jobSent.textContent = formatNumber(job.sent);
   jobFailed.textContent = formatNumber(job.failed);
   jobProgress.style.width = `${percentage}%`;
   jobProgressTrack.setAttribute("aria-valuenow", String(Math.round(percentage)));
   jobProgressLabel.textContent = `${Math.round(percentage)}%`;
-  jobStatus.hidden = isComplete;
   dismissJobButton.hidden = !isComplete;
   updateComposer();
 }
@@ -412,7 +410,7 @@ function restoreCurrentJob() {
   if (storedJobId) {
     currentJobStatus = "restoring";
     jobPanel.hidden = false;
-    jobStatus.textContent = "Restoring…";
+    jobPanel.dataset.state = "loading";
     pollJob(storedJobId);
     updateComposer();
   }
