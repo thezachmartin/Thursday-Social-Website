@@ -117,6 +117,22 @@
   line-height: 1.5;
 }
 
+.text-button {
+  min-height: auto;
+  margin-top: 0.65rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #075b16;
+  font-size: 0.78rem;
+  text-decoration: underline;
+}
+
+.text-button:hover {
+  background: transparent;
+  color: #004806;
+}
+
 .summary-icon {
   display: grid;
   width: 2.5rem;
@@ -448,6 +464,144 @@
   color: #8b7c6c;
   font-size: 0.68rem;
   line-height: 1.4;
+}
+
+.job-panel {
+  padding: 1.25rem;
+  border: 1px solid #b9a994;
+  border-radius: 0.75rem;
+  background: #fffdf8;
+}
+
+.job-heading,
+.job-progress-caption,
+.confirmation-actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.job-heading h2,
+.confirmation-dialog h2 {
+  margin: 0.2rem 0 0;
+  font-family: "DM Serif Display", serif;
+}
+
+.job-status {
+  padding: 0.35rem 0.6rem;
+  border-radius: 999px;
+  background: #e5f4e6;
+  color: #075b16;
+  font-size: 0.72rem;
+  text-transform: capitalize;
+}
+
+.job-status[data-status="failed"] {
+  background: #fce8e4;
+  color: #962115;
+}
+
+.job-stats,
+.confirmation-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+  margin: 1rem 0;
+}
+
+.job-stats div,
+.confirmation-stats div {
+  padding: 0.65rem;
+  border: 1px solid #ddd3c6;
+  border-radius: 0.45rem;
+  background: #f8f3eb;
+}
+
+.job-stats dt,
+.confirmation-stats dt {
+  color: #756a5e;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.job-stats dd,
+.confirmation-stats dd {
+  margin: 0.2rem 0 0;
+  font-weight: 700;
+}
+
+.job-progress-track {
+  height: 0.65rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e1d9cf;
+}
+
+.job-progress-track span {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: #004806;
+  transition: width 180ms ease;
+}
+
+.job-progress-caption {
+  margin-top: 0.5rem;
+  color: #675d52;
+  font-size: 0.7rem;
+}
+
+.job-progress-caption code {
+  overflow-wrap: anywhere;
+}
+
+.confirmation-dialog {
+  width: min(100% - 2rem, 38rem);
+  max-height: calc(100svh - 2rem);
+  padding: 0;
+  overflow: auto;
+  border: 1px solid #8d8174;
+  border-radius: 1rem;
+  background: #fffaf0;
+  color: #1a1a1a;
+}
+
+.confirmation-dialog::backdrop {
+  background: rgb(0 20 3 / 72%);
+}
+
+.confirmation-content {
+  padding: clamp(1.25rem, 5vw, 2rem);
+}
+
+.danger-warning {
+  padding: 0.9rem;
+  border: 2px solid #bd2b19;
+  border-radius: 0.55rem;
+  background: #fce8e4;
+  color: #7d170e;
+  font-weight: 700;
+}
+
+.confirmation-message {
+  max-height: 14rem;
+  margin: 0.4rem 0 0;
+  padding: 0.9rem;
+  overflow: auto;
+  border: 1px solid #b9a994;
+  border-radius: 0.55rem;
+  background: #fff;
+  color: #1a1a1a;
+  font: 1rem/1.5 "DM Sans", sans-serif;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.confirmation-actions button {
+  flex: 1;
 }
 
 @media (max-width: 32rem) {
