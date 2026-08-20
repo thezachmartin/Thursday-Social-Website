@@ -1,8 +1,11 @@
+"use strict";
+
 const loginView = document.querySelector("#login-view");
 const adminView = document.querySelector("#admin-view");
 const loginForm = document.querySelector("#login-form");
 const loginStatus = document.querySelector("#login-status");
 const signOutButton = document.querySelector("#sign-out");
+const refreshEstimateButton = document.querySelector("#refresh-estimate");
 const activeCount = document.querySelector("#active-count");
 const countStatus = document.querySelector("#count-status");
 const messageForm = document.querySelector("#message-form");
@@ -12,193 +15,85 @@ const septetCount = document.querySelector("#septet-count");
 const segmentCount = document.querySelector("#segment-count");
 const remainingCount = document.querySelector("#remaining-count");
 const segmentProgress = document.querySelector("#segment-progress");
-const segmentLabel = document.querySelector("#segment-label");
 const segmentUsage = document.querySelector("#segment-usage");
 const encodingBadge = document.querySelector("#encoding-badge");
 const messageError = document.querySelector("#message-error");
-const sendMessageButton = document.querySelector("#send-message");
-const segmentCost = document.querySelector("#segment-cost");
-const increaseSegmentCost = document.querySelector("#increase-segment-cost");
-const decreaseSegmentCost = document.querySelector("#decrease-segment-cost");
+const reviewButton = document.querySelector("#review-message");
 const estimatedCost = document.querySelector("#estimated-cost");
 const costSubscribers = document.querySelector("#cost-subscribers");
 const costSegments = document.querySelector("#cost-segments");
+const confirmationDialog = document.querySelector("#confirmation-dialog");
+const confirmationMessage = document.querySelector("#confirmation-message");
+const confirmationRecipients = document.querySelector("#confirmation-recipients");
+const confirmationSegments = document.querySelector("#confirmation-segments");
+const confirmationTotalSegments = document.querySelector("#confirmation-total-segments");
+const confirmationCost = document.querySelector("#confirmation-cost");
+const confirmSendButton = document.querySelector("#confirm-send");
+const cancelSendButton = document.querySelector("#cancel-send");
+const jobPanel = document.querySelector("#job-panel");
+const jobStatus = document.querySelector("#job-status");
+const jobId = document.querySelector("#job-id");
+const jobTotal = document.querySelector("#job-total");
+const jobQueued = document.querySelector("#job-queued");
+const jobSent = document.querySelector("#job-sent");
+const jobFailed = document.querySelector("#job-failed");
+const jobRemaining = document.querySelector("#job-remaining");
+const jobProgress = document.querySelector("#job-progress");
+const jobProgressLabel = document.querySelector("#job-progress-label");
+const jobError = document.querySelector("#job-error");
+const dismissJobButton = document.querySelector("#dismiss-job");
 const config = window.THURSDAY_SOCIAL_CONFIG ?? {};
-const cognitoConfig = config.cognito ?? {};
 const composerConfig = config.adminComposer ?? {};
+const cognitoConfig = config.cognito ?? {};
 const Cognito = window.AmazonCognitoIdentity;
-const previewSubscriberCount = (() => {
-  const isLocalhost =
-    window.location.hostname === "localhost" ||
-    window.location.hostname === "127.0.0.1";
-  const value = Number(
-    new URLSearchParams(window.location.search).get("subscribers"),
-  );
-
-  return isLocalhost && Number.isInteger(value) && value >= 0 ? value : null;
-})();
-const GSM_BASIC_CHARACTERS = new Set(
-  Array.from(
-    "@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà",
-  ),
+const core = window.ThursdaySocialAdminCore;
+const api = core.createAdminApi(window.fetch.bind(window), {
+  activeCount: config.activeCountEndpoint,
+  jobs: config.adminJobsEndpoint,
+  sendMessages: config.sendMessagesEndpoint,
+});
+const attemptStore = core.createAttemptStore(
+  localStorage,
+  () => window.crypto.randomUUID(),
 );
-const GSM_EXTENSION_CHARACTERS = new Set(Array.from("\f^{}\\[~]|€"));
-const SINGLE_SEGMENT_SEPTETS = 160;
-const MULTI_SEGMENT_SEPTETS = 153;
-const SINGLE_SEGMENT_UNICODE_UNITS = 70;
-const MULTI_SEGMENT_UNICODE_UNITS = 67;
-const singleSegmentTarget =
-  Number.isInteger(composerConfig.singleSegmentTarget) &&
-  composerConfig.singleSegmentTarget > 0
-    ? composerConfig.singleSegmentTarget
-    : SINGLE_SEGMENT_SEPTETS;
+const currentJobStore = core.createJobStore(localStorage);
+const limits = {
+  costPerSegment: composerConfig.costPerSegment ?? 0.012,
+  maxEstimatedCostUsd: composerConfig.maxEstimatedCostUsd ?? 250,
+  maxRecipients: composerConfig.maxRecipients ?? 10000,
+  maxSegmentsPerRecipient: composerConfig.maxSegmentsPerRecipient ?? 1,
+};
+const pollIntervalMs = composerConfig.pollIntervalMs ?? 3000;
+const isBroadcastEnvironment = core.isAllowedBroadcastEnvironment(
+  window.location,
+  config.adminBroadcastHosts,
+);
+
 let currentUser = null;
-let countRequestController = null;
+let currentJwt = "";
 let activeSubscriberCount = null;
-let currentSegments = 0;
+let currentEstimate = core.estimateBroadcast("", null, limits);
+let countController = null;
+let pollTimer = null;
+let pollGeneration = 0;
+let submissionInProgress = false;
+let currentJobStatus = "";
+let jobLookupFailures = 0;
+const confirmationGate = core.createConfirmationGate(({ message }) =>
+  submitConfirmedBroadcast(message),
+);
 
-segmentCost.value =
-  Number.isFinite(composerConfig.costPerSegment) &&
-  composerConfig.costPerSegment >= 0
-    ? composerConfig.costPerSegment
-    : 0.012;
-
-function getMessageMetrics(message) {
-  let septets = 0;
-  let isGsm = true;
-
-  for (const character of message) {
-    if (GSM_BASIC_CHARACTERS.has(character)) {
-      septets += 1;
-    } else if (GSM_EXTENSION_CHARACTERS.has(character)) {
-      septets += 2;
-    } else {
-      isGsm = false;
-    }
-  }
-
-  const messageUnits = isGsm ? septets : message.length;
-  const singleSegmentCapacity = isGsm
-    ? SINGLE_SEGMENT_SEPTETS
-    : SINGLE_SEGMENT_UNICODE_UNITS;
-  const multiSegmentCapacity = isGsm
-    ? MULTI_SEGMENT_SEPTETS
-    : MULTI_SEGMENT_UNICODE_UNITS;
-  const segments =
-    messageUnits === 0
-      ? 0
-      : messageUnits <= singleSegmentCapacity
-        ? 1
-        : Math.ceil(messageUnits / multiSegmentCapacity);
-  const segmentCapacity =
-    segments <= 1
-      ? singleSegmentCapacity
-      : segments * multiSegmentCapacity;
-  const usedInCurrentSegment =
-    segments <= 1
-      ? messageUnits
-      : messageUnits - (segments - 1) * multiSegmentCapacity;
-
-  return {
-    characters: Array.from(message).length,
-    isGsm,
-    messageUnits,
-    remaining:
-      segments <= 1
-        ? singleSegmentCapacity - messageUnits
-        : multiSegmentCapacity - usedInCurrentSegment,
-    segmentCapacity,
-    segmentSize: segments <= 1 ? singleSegmentCapacity : multiSegmentCapacity,
-    segments,
-    septets,
-    usedInCurrentSegment,
-  };
+function formatNumber(value) {
+  return Number.isFinite(value) ? value.toLocaleString() : "—";
 }
 
-function updateCostEstimate() {
-  const cost = Number(segmentCost.value);
-  costSubscribers.textContent =
-    activeSubscriberCount === null
-      ? "—"
-      : activeSubscriberCount.toLocaleString();
-  costSegments.textContent = currentSegments.toLocaleString();
-
-  if (
-    activeSubscriberCount === null ||
-    !Number.isFinite(cost) ||
-    cost < 0
-  ) {
-    estimatedCost.textContent = "—";
-    return;
-  }
-
-  estimatedCost.textContent = new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(activeSubscriberCount * currentSegments * cost);
-}
-
-function adjustSegmentCost(direction) {
-  const currentCost = Number(segmentCost.value);
-  const step = Number(segmentCost.step);
-  const nextCost = Math.max(
-    0,
-    (Number.isFinite(currentCost) ? currentCost : 0) + direction * step,
-  );
-
-  segmentCost.value = nextCost.toFixed(3);
-  updateCostEstimate();
-}
-
-function updateComposer() {
-  const metrics = getMessageMetrics(messageBody.value);
-  const isNearLimit =
-    metrics.isGsm &&
-    metrics.septets > 150 &&
-    metrics.septets <= singleSegmentTarget;
-  const exceedsSingleSegment =
-    metrics.isGsm && metrics.septets > singleSegmentTarget;
-  const progressUnits = metrics.isGsm
-    ? metrics.septets
-    : metrics.messageUnits;
-  const progressCapacity = metrics.isGsm
-    ? singleSegmentTarget
-    : metrics.segmentSize;
-  const progress = Math.min(
-    (progressUnits / progressCapacity) * 100,
-    100,
-  );
-
-  currentSegments = metrics.segments;
-  characterCount.textContent = metrics.characters.toLocaleString();
-  septetCount.textContent = metrics.isGsm
-    ? metrics.septets.toLocaleString()
+function formatCurrency(value) {
+  return Number.isFinite(value)
+    ? new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+      }).format(value)
     : "—";
-  segmentCount.textContent = metrics.segments.toLocaleString();
-  remainingCount.textContent = metrics.remaining.toLocaleString();
-  segmentProgress.style.width = `${Number.isFinite(progress) ? progress : 0}%`;
-  segmentLabel.textContent = `Segment ${Math.max(metrics.segments, 1)}`;
-  segmentUsage.textContent = metrics.isGsm
-    ? `${metrics.septets.toLocaleString()} / ${singleSegmentTarget.toLocaleString()} characters`
-    : `${metrics.messageUnits.toLocaleString()} / ${metrics.segmentCapacity.toLocaleString()} Unicode units`;
-  encodingBadge.textContent = metrics.isGsm ? "GSM-7" : "Non-GSM";
-  encodingBadge.dataset.encoding = metrics.isGsm ? "gsm" : "unicode";
-  messageForm.dataset.invalid = String(!metrics.isGsm);
-  messageForm.dataset.warning = String(isNearLimit);
-  messageForm.dataset.overLimit = String(exceedsSingleSegment);
-  sendMessageButton.disabled = !messageBody.value || !metrics.isGsm;
-
-  if (!metrics.isGsm) {
-    messageError.textContent =
-      "This message contains non-GSM characters. Remove them before sending.";
-  } else if (exceedsSingleSegment) {
-    messageError.textContent =
-      `This message uses ${metrics.segments.toLocaleString()} SMS segments and will cost more to send.`;
-  } else {
-    messageError.textContent = "";
-  }
-
-  updateCostEstimate();
 }
 
 function setLoginStatus(message, state = "") {
@@ -206,25 +101,8 @@ function setLoginStatus(message, state = "") {
   loginStatus.dataset.state = state;
 }
 
-function showAdmin(user) {
-  currentUser = user;
-  loginView.hidden = true;
-  adminView.hidden = false;
-}
-
-function showLogin(message = "") {
-  currentUser = null;
-  adminView.hidden = true;
-  loginView.hidden = false;
-  setLoginStatus(message, message ? "error" : "");
-}
-
 function getUserPool() {
-  if (
-    !Cognito ||
-    !cognitoConfig.userPoolId ||
-    !cognitoConfig.userPoolClientId
-  ) {
+  if (!Cognito || !cognitoConfig.userPoolId || !cognitoConfig.userPoolClientId) {
     return null;
   }
 
@@ -237,165 +115,324 @@ function getUserPool() {
 
 const userPool = getUserPool();
 
+function stopPolling() {
+  pollGeneration += 1;
+  window.clearTimeout(pollTimer);
+  pollTimer = null;
+}
+
+function showLogin(message = "") {
+  currentUser = null;
+  currentJwt = "";
+  adminView.hidden = true;
+  loginView.hidden = false;
+  setLoginStatus(message, message ? "error" : "");
+}
+
 function signOut(message = "") {
-  countRequestController?.abort();
-  countRequestController = null;
-  const user = currentUser ?? userPool?.getCurrentUser();
-  user?.signOut();
+  stopPolling();
+  countController?.abort();
+  countController = null;
+  (currentUser ?? userPool?.getCurrentUser())?.signOut();
   loginForm.reset();
-  activeCount.textContent = "—";
   activeSubscriberCount = null;
-  updateCostEstimate();
+  activeCount.textContent = "—";
   countStatus.textContent = "";
   showLogin(message);
 }
 
-function getCountError(status) {
-  if (status === 401) {
-    return "Your session has expired. Sign in again.";
+function handleApiError(error, target) {
+  if (error instanceof core.AdminApiError && [401, 403].includes(error.status)) {
+    signOut(error.message);
+    return true;
   }
 
-  if (status === 403) {
-    return "Your account is not authorized to view subscriber data.";
-  }
-
-  return "The subscriber count service is unavailable. Please try again later.";
+  target.textContent =
+    error instanceof core.AdminApiError
+      ? error.message
+      : "We couldn't reach the broadcast service. Check your connection and try again.";
+  return false;
 }
 
-function getAuthenticationError(error) {
-  const errorCode = error?.code ?? error?.name;
+function updateComposer() {
+  attemptStore.messageEdited(messageBody.value);
+  currentEstimate = core.estimateBroadcast(
+    messageBody.value,
+    activeSubscriberCount,
+    limits,
+  );
+  const { metrics } = currentEstimate;
+  const progress = Math.min((metrics.septets / 160) * 100, 100);
 
-  if (
-    errorCode === "NotAuthorizedException" ||
-    errorCode === "UserNotFoundException"
-  ) {
-    return "The email or password is incorrect.";
-  }
-
-  if (errorCode === "PasswordResetRequiredException") {
-    return "This admin account requires a password reset before sign-in.";
-  }
-
-  if (errorCode === "UserNotConfirmedException") {
-    return "This admin account has not been confirmed.";
-  }
-
-  if (
-    errorCode === "LimitExceededException" ||
-    errorCode === "TooManyRequestsException"
-  ) {
-    return "Too many sign-in attempts. Please wait a moment and try again.";
-  }
-
-  return "The authentication service is unavailable. Please try again.";
+  characterCount.textContent = formatNumber(metrics.characters);
+  septetCount.textContent = metrics.isGsm ? formatNumber(metrics.septets) : "—";
+  segmentCount.textContent = formatNumber(metrics.segments);
+  remainingCount.textContent = metrics.isGsm ? formatNumber(metrics.remaining) : "—";
+  segmentProgress.style.width = `${Number.isFinite(progress) ? progress : 0}%`;
+  segmentUsage.textContent = metrics.isGsm
+    ? `${formatNumber(metrics.septets)} / 160 septets`
+    : "Unsupported GSM-7 characters";
+  encodingBadge.textContent = metrics.isGsm ? "GSM-7" : "Unsupported";
+  encodingBadge.dataset.encoding = metrics.isGsm ? "gsm" : "unicode";
+  messageForm.dataset.invalid = String(!metrics.isGsm);
+  messageForm.dataset.overLimit = String(metrics.segments > 1);
+  messageError.textContent =
+    currentEstimate.errors[0] ??
+    (!isBroadcastEnvironment && messageBody.value
+      ? "Broadcast submission is enabled only on the configured production host."
+      : !core.canStartBroadcast(currentJobStatus)
+        ? "Wait for the current broadcast to finish before starting another."
+      : "");
+  reviewButton.disabled =
+    !currentEstimate.isValid ||
+    submissionInProgress ||
+    !isBroadcastEnvironment ||
+    !core.canStartBroadcast(currentJobStatus);
+  costSubscribers.textContent = formatNumber(activeSubscriberCount);
+  costSegments.textContent = formatNumber(currentEstimate.totalSegments);
+  estimatedCost.textContent = formatCurrency(currentEstimate.estimatedCostUsd);
 }
 
-async function loadActiveCount(idToken) {
+async function loadActiveCount() {
+  countController?.abort();
+  const controller = new AbortController();
+  countController = controller;
   activeCount.textContent = "—";
-  countStatus.textContent = "Loading subscriber count…";
-
-  if (previewSubscriberCount !== null) {
-    activeSubscriberCount = previewSubscriberCount;
-    activeCount.textContent = previewSubscriberCount.toLocaleString();
-    countStatus.textContent = "Local preview subscriber total.";
-    updateCostEstimate();
-    return;
-  }
-
-  if (!config.activeCountEndpoint) {
-    countStatus.textContent = "The subscriber count service is not configured.";
-    return;
-  }
-
-  countRequestController?.abort();
-  countRequestController = new AbortController();
+  countStatus.textContent = "Refreshing subscriber count…";
+  refreshEstimateButton.disabled = true;
 
   try {
-    const response = await fetch(config.activeCountEndpoint, {
-      headers: { Authorization: `Bearer ${idToken}` },
-      signal: countRequestController.signal,
+    activeSubscriberCount = await api.getActiveCount(currentJwt, {
+      signal: controller.signal,
     });
-
-    if (response.status === 401) {
-      signOut(getCountError(response.status));
-      return;
-    }
-
-    if (!response.ok) {
-      countStatus.textContent = getCountError(response.status);
-      return;
-    }
-
-    let body;
-
-    try {
-      body = await response.json();
-    } catch {
-      countStatus.textContent =
-        "The subscriber count service returned an invalid response.";
-      return;
-    }
-
-    if (!Number.isInteger(body.count) || body.count < 0) {
-      countStatus.textContent =
-        "The subscriber count service returned an invalid response.";
-      return;
-    }
-
-    activeCount.textContent = body.count.toLocaleString();
-    activeSubscriberCount = body.count;
-    updateCostEstimate();
+    activeCount.textContent = formatNumber(activeSubscriberCount);
     countStatus.textContent = "Current active subscriber total.";
   } catch (error) {
-    if (error.name !== "AbortError") {
-      countStatus.textContent =
-        "We couldn't reach the subscriber count service. Check your connection and try again.";
+    if (error.name === "AbortError") return;
+    activeSubscriberCount = null;
+    handleApiError(error, countStatus);
+  } finally {
+    if (countController === controller) {
+      countController = null;
+      refreshEstimateButton.disabled = false;
+      updateComposer();
     }
   }
+}
+
+function showAdmin(user, jwt) {
+  currentUser = user;
+  currentJwt = jwt;
+  loginView.hidden = true;
+  adminView.hidden = false;
+  loadActiveCount();
+  restoreCurrentJob();
 }
 
 function completeAuthentication(user, session) {
-  if (!session?.isValid()) {
-    signOut("Your session has expired. Sign in again.");
+  try {
+    const { jwt } = core.getAdminSession(session);
+    loginForm.reset();
+    setLoginStatus("");
+    showAdmin(user, jwt);
+  } catch (error) {
+    user?.signOut();
+    showLogin(error.message);
+  }
+}
+
+function openConfirmation() {
+  if (!isBroadcastEnvironment) {
+    messageError.textContent =
+      "Broadcast submission is enabled only on the configured production host.";
     return;
   }
 
-  loginForm.reset();
-  setLoginStatus("");
-  showAdmin(user);
-  loadActiveCount(session.getIdToken().getJwtToken());
+  if (!core.canStartBroadcast(currentJobStatus)) {
+    messageError.textContent =
+      "Wait for the current broadcast to finish before starting another.";
+    return;
+  }
+
+  currentEstimate = core.estimateBroadcast(
+    messageBody.value,
+    activeSubscriberCount,
+    limits,
+  );
+  if (!currentEstimate.isValid) {
+    updateComposer();
+    return;
+  }
+
+  confirmationMessage.textContent = messageBody.value;
+  confirmationRecipients.textContent = formatNumber(currentEstimate.recipients);
+  confirmationSegments.textContent = formatNumber(
+    currentEstimate.segmentsPerRecipient,
+  );
+  confirmationTotalSegments.textContent = formatNumber(
+    currentEstimate.totalSegments,
+  );
+  confirmationCost.textContent = formatCurrency(
+    currentEstimate.estimatedCostUsd,
+  );
+  confirmationGate.review(messageBody.value, currentEstimate);
+  confirmationDialog.showModal();
+}
+
+function saveCurrentJob(id) {
+  currentJobStore.save(id);
+}
+
+function clearCurrentJob() {
+  currentJobStore.clear();
+  currentJobStatus = "";
+  jobLookupFailures = 0;
+}
+
+function renderJob(job) {
+  const percentage = core.getProgressPercentage(job);
+  currentJobStatus = job.status;
+  jobLookupFailures = 0;
+  jobPanel.hidden = false;
+  jobStatus.textContent = job.status;
+  jobStatus.dataset.status = job.status;
+  jobId.textContent = job.jobId;
+  jobTotal.textContent = formatNumber(job.totalRecipients);
+  jobQueued.textContent = formatNumber(job.queued);
+  jobSent.textContent = formatNumber(job.sent);
+  jobFailed.textContent = formatNumber(job.failed);
+  jobRemaining.textContent = formatNumber(job.remaining);
+  jobProgress.style.width = `${percentage}%`;
+  jobProgressLabel.textContent = `${Math.round(percentage)}%`;
+  dismissJobButton.hidden = !core.TERMINAL_JOB_STATUSES.has(job.status);
+  updateComposer();
+}
+
+async function pollJob(id, generation = ++pollGeneration) {
+  try {
+    const job = await api.getJob(currentJwt, id);
+    if (generation !== pollGeneration) return;
+
+    jobError.textContent = "";
+    renderJob(job);
+    if (!core.TERMINAL_JOB_STATUSES.has(job.status)) {
+      pollTimer = window.setTimeout(() => pollJob(id, generation), pollIntervalMs);
+    }
+  } catch (error) {
+    if (generation !== pollGeneration) return;
+    if (handleApiError(error, jobError)) return;
+
+    if (error instanceof core.AdminApiError && error.status === 404) {
+      jobLookupFailures += 1;
+      if (jobLookupFailures >= 3) {
+        jobError.textContent =
+          "The job could not be found after several attempts. Dismiss it to clear the saved job.";
+        dismissJobButton.hidden = false;
+        return;
+      }
+    }
+
+    pollTimer = window.setTimeout(() => pollJob(id, generation), pollIntervalMs);
+  }
+}
+
+function restoreCurrentJob() {
+  const storedJobId = currentJobStore.get();
+  if (storedJobId) {
+    currentJobStatus = "restoring";
+    jobPanel.hidden = false;
+    jobId.textContent = storedJobId;
+    jobStatus.textContent = "Restoring…";
+    pollJob(storedJobId);
+    updateComposer();
+  }
+}
+
+async function submitConfirmedBroadcast(confirmedMessage) {
+  if (submissionInProgress) return;
+
+  submissionInProgress = true;
+  confirmSendButton.disabled = true;
+  cancelSendButton.disabled = true;
+  reviewButton.disabled = true;
+  jobError.textContent = "";
+
+  if (currentJobStore.get()) {
+    stopPolling();
+    clearCurrentJob();
+    attemptStore.clear();
+    jobPanel.hidden = true;
+  }
+
+  const attempt = attemptStore.beginConfirmedAttempt(confirmedMessage);
+
+  try {
+    const result = await api.submitBroadcast(
+      currentJwt,
+      attempt.message,
+      attempt.idempotencyKey,
+    );
+    if (!result?.jobId) {
+      throw new core.AdminApiError("The service returned an invalid job.", 200);
+    }
+
+    stopPolling();
+    clearCurrentJob();
+    saveCurrentJob(result.jobId);
+    confirmationDialog.close();
+    renderJob({
+      jobId: result.jobId,
+      status: result.status,
+      totalRecipients: result.estimate?.recipients ?? 0,
+      queued: 0,
+      sent: 0,
+      failed: 0,
+      remaining: result.estimate?.recipients ?? 0,
+    });
+    pollJob(result.jobId);
+  } catch (error) {
+    confirmationDialog.close();
+    if (
+      error instanceof core.AdminApiError &&
+      error.status === 409 &&
+      error.code === "broadcast_failed"
+    ) {
+      attemptStore.clear();
+    }
+    handleApiError(error, messageError);
+  } finally {
+    submissionInProgress = false;
+    confirmSendButton.disabled = false;
+    cancelSendButton.disabled = false;
+    updateComposer();
+  }
 }
 
 loginForm.addEventListener("submit", (event) => {
   event.preventDefault();
-
-  if (!loginForm.reportValidity()) {
-    return;
-  }
+  if (!loginForm.reportValidity()) return;
 
   if (!userPool) {
-    setLoginStatus(
-      "The authentication service is unavailable. Please try again later.",
-      "error",
-    );
+    setLoginStatus("The authentication service is unavailable.", "error");
     return;
   }
 
   const formData = new FormData(loginForm);
+  const username = formData.get("email").trim();
   const submitButton = loginForm.querySelector("button[type='submit']");
   const user = new Cognito.CognitoUser({
-    Username: formData.get("email").trim(),
+    Username: username,
     Pool: userPool,
     Storage: sessionStorage,
   });
   const authenticationDetails = new Cognito.AuthenticationDetails({
-    Username: formData.get("email").trim(),
+    Username: username,
     Password: formData.get("password"),
   });
 
+  user.setAuthenticationFlowType("USER_SRP_AUTH");
   submitButton.disabled = true;
   setLoginStatus("Signing in…");
-
   user.authenticateUser(authenticationDetails, {
     onSuccess(session) {
       submitButton.disabled = false;
@@ -403,7 +440,16 @@ loginForm.addEventListener("submit", (event) => {
     },
     onFailure(error) {
       submitButton.disabled = false;
-      setLoginStatus(getAuthenticationError(error), "error");
+      const invalidCredentials = [
+        "NotAuthorizedException",
+        "UserNotFoundException",
+      ].includes(error?.code ?? error?.name);
+      setLoginStatus(
+        invalidCredentials
+          ? "The email or password is incorrect."
+          : "The authentication service is unavailable. Please try again.",
+        "error",
+      );
     },
     newPasswordRequired() {
       submitButton.disabled = false;
@@ -416,32 +462,37 @@ loginForm.addEventListener("submit", (event) => {
   });
 });
 
-signOutButton.addEventListener("click", () => {
-  signOut();
-  document.querySelector("#email").focus();
-});
-
-messageBody.addEventListener("input", updateComposer);
-segmentCost.addEventListener("input", updateCostEstimate);
-increaseSegmentCost.addEventListener("click", () => adjustSegmentCost(1));
-decreaseSegmentCost.addEventListener("click", () => adjustSegmentCost(-1));
 messageForm.addEventListener("submit", (event) => {
   event.preventDefault();
+  openConfirmation();
+});
+messageBody.addEventListener("input", updateComposer);
+refreshEstimateButton.addEventListener("click", loadActiveCount);
+confirmSendButton.addEventListener("click", () => confirmationGate.confirm());
+cancelSendButton.addEventListener("click", () => {
+  confirmationGate.cancel();
+  confirmationDialog.close();
+});
+signOutButton.addEventListener("click", () => signOut());
+dismissJobButton.addEventListener("click", () => {
+  stopPolling();
+  clearCurrentJob();
+  attemptStore.clear();
+  jobPanel.hidden = true;
+  updateComposer();
 });
 
 updateComposer();
 
 if (userPool) {
   const storedUser = userPool.getCurrentUser();
-
   if (storedUser) {
     storedUser.getSession((error, session) => {
-      if (error || !session?.isValid()) {
+      if (error) {
         storedUser.signOut();
         showLogin();
         return;
       }
-
       completeAuthentication(storedUser, session);
     });
   }

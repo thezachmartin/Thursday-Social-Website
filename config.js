@@ -3,9 +3,17 @@ window.THURSDAY_SOCIAL_CONFIG = {
     "https://gacse1myqa.execute-api.us-east-1.amazonaws.com/prod/signup",
   activeCountEndpoint:
     "https://gacse1myqa.execute-api.us-east-1.amazonaws.com/prod/admin/active-count",
+  sendMessagesEndpoint:
+    "https://gacse1myqa.execute-api.us-east-1.amazonaws.com/prod/admin/sendMessages",
+  adminJobsEndpoint:
+    "https://gacse1myqa.execute-api.us-east-1.amazonaws.com/prod/admin/jobs",
+  adminBroadcastHosts: ["thezachmartin.github.io"],
   adminComposer: {
-    singleSegmentTarget: 160,
     costPerSegment: 0.012,
+    maxEstimatedCostUsd: 250,
+    maxRecipients: 10000,
+    maxSegmentsPerRecipient: 1,
+    pollIntervalMs: 3000,
   },
   cognito: {
     region: "us-east-1",

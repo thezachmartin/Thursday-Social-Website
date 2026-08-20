@@ -1,0 +1,7 @@
+{
+  "name": "thursday-social-website",
+  "private": true,
+  "scripts": {
+    "test": "node --test"
+  }
+}

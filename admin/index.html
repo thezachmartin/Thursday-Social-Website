@@ -65,7 +65,7 @@
         </div>
 
         <p class="admin-intro">
-          Compose a text and estimate the cost before sending it to the club.
+          Compose a GSM-7 text, review the exact broadcast, and track delivery.
         </p>
 
         <div class="admin-layout">
@@ -98,7 +98,7 @@
 
             <div class="message-stats" aria-live="polite">
               <div class="message-stat">
-                <span>Characters</span>
+                <span>Septets</span>
                 <strong id="septet-count">0</strong>
               </div>
               <div class="message-stat">
@@ -120,10 +120,10 @@
             </div>
 
             <p id="message-error" class="composer-error" role="status" aria-live="polite"></p>
-            <button id="send-message" class="send-button" type="submit" disabled>
-              Send message
+            <button id="review-message" class="send-button" type="submit" disabled>
+              Review broadcast
             </button>
-            <p class="send-note">Sending is not connected to AWS yet.</p>
+            <p class="send-note">Reviewing does not send the message.</p>
           </form>
 
           <aside class="broadcast-summary" aria-label="Broadcast estimate">
@@ -142,6 +142,9 @@
                 <p id="count-status" class="count-status" role="status" aria-live="polite">
                   Loading subscriber count…
                 </p>
+                <button id="refresh-estimate" class="text-button" type="button">
+                  Refresh estimate
+                </button>
               </div>
             </div>
 
@@ -151,53 +154,72 @@
               <div class="cost-formula">
                 <span><strong id="cost-subscribers">—</strong> subscribers</span>
                 <span aria-hidden="true">×</span>
-                <span><strong id="cost-segments">0</strong> segments</span>
+                <span><strong id="cost-segments">0</strong> total segments</span>
                 <span aria-hidden="true">×</span>
-                <div class="cost-input">
-                  <label class="sr-only" for="segment-cost">
-                    Cost per segment in dollars
-                  </label>
-                  <span aria-hidden="true">$</span>
-                  <input
-                    id="segment-cost"
-                    name="segment-cost"
-                    type="number"
-                    min="0"
-                    step="0.001"
-                    value="0.012"
-                    inputmode="decimal"
-                    aria-label="Cost per segment in dollars"
-                  >
-                  <span class="cost-steppers">
-                    <button
-                      id="increase-segment-cost"
-                      type="button"
-                      aria-label="Increase cost per segment"
-                    >
-                      <svg viewBox="0 0 12 8" aria-hidden="true">
-                        <path d="m1 7 5-5 5 5"></path>
-                      </svg>
-                    </button>
-                    <button
-                      id="decrease-segment-cost"
-                      type="button"
-                      aria-label="Decrease cost per segment"
-                    >
-                      <svg viewBox="0 0 12 8" aria-hidden="true">
-                        <path d="m1 1 5 5 5-5"></path>
-                      </svg>
-                    </button>
-                  </span>
-                </div>
+                <span>$0.012 per segment</span>
               </div>
               <p class="cost-disclaimer">
                 Estimate only. Actual carrier costs may vary.
               </p>
             </div>
+
+            <section id="job-panel" class="job-panel" aria-labelledby="job-title" hidden>
+              <div class="job-heading">
+                <div>
+                  <p class="section-kicker">Broadcast progress</p>
+                  <h2 id="job-title">Current job</h2>
+                </div>
+                <strong id="job-status" class="job-status">Preparing</strong>
+              </div>
+              <dl class="job-stats">
+                <div><dt>Total</dt><dd id="job-total">—</dd></div>
+                <div><dt>Queued</dt><dd id="job-queued">—</dd></div>
+                <div><dt>Sent</dt><dd id="job-sent">—</dd></div>
+                <div><dt>Failed</dt><dd id="job-failed">—</dd></div>
+                <div><dt>Remaining</dt><dd id="job-remaining">—</dd></div>
+              </dl>
+              <div class="job-progress-track" aria-hidden="true">
+                <span id="job-progress"></span>
+              </div>
+              <div class="job-progress-caption">
+                <span id="job-progress-label">0%</span>
+                <span>Job ID: <code id="job-id"></code></span>
+              </div>
+              <p id="job-error" class="composer-error" role="status" aria-live="polite"></p>
+              <button id="dismiss-job" class="secondary-button" type="button" hidden>
+                Dismiss result
+              </button>
+            </section>
           </aside>
         </div>
       </section>
     </main>
+
+    <dialog id="confirmation-dialog" class="confirmation-dialog">
+      <div class="confirmation-content">
+        <p class="admin-kicker">Final confirmation</p>
+        <h2>Send this broadcast?</h2>
+        <p class="danger-warning">
+          Confirming sends a real SMS to every opted-in subscriber.
+        </p>
+        <div>
+          <span class="section-kicker">Exact message</span>
+          <pre id="confirmation-message" class="confirmation-message"></pre>
+        </div>
+        <dl class="confirmation-stats">
+          <div><dt>Active recipients</dt><dd id="confirmation-recipients">—</dd></div>
+          <div><dt>Segments per recipient</dt><dd id="confirmation-segments">—</dd></div>
+          <div><dt>Total segments</dt><dd id="confirmation-total-segments">—</dd></div>
+          <div><dt>Estimated cost</dt><dd id="confirmation-cost">—</dd></div>
+        </dl>
+        <div class="confirmation-actions">
+          <button id="cancel-send" class="secondary-button" type="button">Cancel</button>
+          <button id="confirm-send" class="send-button" type="button">
+            Confirm and send SMS
+          </button>
+        </div>
+      </div>
+    </dialog>
 
     <script src="../config.js"></script>
     <script
@@ -205,6 +227,7 @@
       integrity="sha384-tmLe+My/drouBT8LDBDX54/GtvpwceGWUwRKXHJfWra2DlJ/598zVtizduWyMqz5"
       crossorigin="anonymous"
     ></script>
+    <script src="./core.js"></script>
     <script src="./admin.js"></script>
   </body>
 </html>
