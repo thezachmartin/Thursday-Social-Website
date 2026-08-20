@@ -51,11 +51,11 @@
 }
 
 #login-form button {
-  background: #c9271c;
+  background: #075b16;
 }
 
 #login-form button:hover {
-  background: #a82018;
+  background: #004806;
 }
 
 #login-status[data-state="error"] {
@@ -67,6 +67,35 @@
   gap: 1rem;
   align-items: flex-start;
   justify-content: space-between;
+}
+
+#sign-out {
+  width: auto;
+  min-height: auto;
+  padding: 0.25rem 0;
+  border: 0;
+  background: transparent;
+  color: #bd2b19;
+}
+
+#sign-out:hover {
+  background: transparent;
+  color: #962115;
+}
+
+#dismiss-job {
+  width: auto;
+  min-height: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #bd2b19;
+  font-size: 0.8rem;
+}
+
+#dismiss-job:hover {
+  background: transparent;
+  color: #962115;
 }
 
 .secondary-button {
@@ -157,7 +186,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1.65fr) minmax(16rem, 0.85fr);
   gap: 1.25rem;
-  align-items: start;
+  align-items: stretch;
 }
 
 .composer,
@@ -169,7 +198,7 @@
 
 .composer {
   display: grid;
-  gap: 1rem;
+  gap: 0.75rem;
   padding: clamp(1rem, 3vw, 1.5rem);
 }
 
@@ -239,7 +268,7 @@
 .message-field textarea {
   display: block;
   width: 100%;
-  min-height: 10rem;
+  min-height: 8rem;
   padding: 0.65rem 0.9rem;
   resize: vertical;
   border: 0;
@@ -328,12 +357,16 @@
   font-weight: 600;
 }
 
+#message-error:empty {
+  display: none;
+}
+
 .send-button {
-  background: #c9271c;
+  background: #075b16;
 }
 
 .send-button:hover {
-  background: #a82018;
+  background: #004806;
 }
 
 .send-button:disabled {
@@ -349,6 +382,7 @@
 
 .broadcast-summary {
   display: grid;
+  grid-template-rows: auto auto 1fr;
   gap: 1rem;
 }
 
@@ -467,14 +501,23 @@
 }
 
 .job-panel {
-  padding: 1.25rem;
+  align-self: end;
+  padding: 1rem;
   border: 1px solid #b9a994;
   border-radius: 0.75rem;
   background: #fffdf8;
 }
 
+.job-panel .job-stats {
+  margin-block: 0.6rem;
+}
+
+.job-panel .composer-error:empty {
+  display: none;
+}
+
 .job-heading,
-.job-progress-caption,
+.job-progress-row,
 .confirmation-actions {
   display: flex;
   gap: 1rem;
@@ -482,10 +525,13 @@
   justify-content: space-between;
 }
 
-.job-heading h2,
 .confirmation-dialog h2 {
   margin: 0.2rem 0 0;
   font-family: "DM Serif Display", serif;
+}
+
+.job-heading .section-kicker {
+  margin: 0;
 }
 
 .job-status {
@@ -533,7 +579,8 @@
 }
 
 .job-progress-track {
-  height: 0.65rem;
+  flex: 1;
+  height: 0.715rem;
   overflow: hidden;
   border-radius: 999px;
   background: #e1d9cf;
@@ -548,14 +595,14 @@
   transition: width 180ms ease;
 }
 
-.job-progress-caption {
-  margin-top: 0.5rem;
+.job-progress-row {
   color: #675d52;
   font-size: 0.7rem;
 }
 
-.job-progress-caption code {
-  overflow-wrap: anywhere;
+.job-progress-row > span {
+  min-width: 2.5rem;
+  text-align: right;
 }
 
 .confirmation-dialog {
@@ -586,6 +633,12 @@
   font-weight: 700;
 }
 
+.danger-warning.preview-warning {
+  border-color: #248236;
+  background: #e5f4e6;
+  color: #075b16;
+}
+
 .confirmation-message {
   max-height: 14rem;
   margin: 0.4rem 0 0;
@@ -601,12 +654,22 @@
 }
 
 .confirmation-actions button {
-  flex: 1;
+  width: 100%;
+  min-height: 3.25rem;
+}
+
+.confirmation-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 @media (max-width: 32rem) {
   .admin-header {
-    display: grid;
+    gap: 0.5rem;
+  }
+
+  #sign-out {
+    font-size: 0.8rem;
   }
 
   .message-meta {

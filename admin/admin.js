@@ -11,7 +11,7 @@ const countStatus = document.querySelector("#count-status");
 const messageForm = document.querySelector("#message-form");
 const messageBody = document.querySelector("#message-body");
 const characterCount = document.querySelector("#character-count");
-const septetCount = document.querySelector("#septet-count");
+const messageCharacterCount = document.querySelector("#message-character-count");
 const segmentCount = document.querySelector("#segment-count");
 const remainingCount = document.querySelector("#remaining-count");
 const segmentProgress = document.querySelector("#segment-progress");
@@ -28,16 +28,14 @@ const confirmationRecipients = document.querySelector("#confirmation-recipients"
 const confirmationSegments = document.querySelector("#confirmation-segments");
 const confirmationTotalSegments = document.querySelector("#confirmation-total-segments");
 const confirmationCost = document.querySelector("#confirmation-cost");
+const confirmationWarning = document.querySelector("#confirmation-warning");
 const confirmSendButton = document.querySelector("#confirm-send");
 const cancelSendButton = document.querySelector("#cancel-send");
 const jobPanel = document.querySelector("#job-panel");
 const jobStatus = document.querySelector("#job-status");
-const jobId = document.querySelector("#job-id");
-const jobTotal = document.querySelector("#job-total");
-const jobQueued = document.querySelector("#job-queued");
 const jobSent = document.querySelector("#job-sent");
 const jobFailed = document.querySelector("#job-failed");
-const jobRemaining = document.querySelector("#job-remaining");
+const jobProgressTrack = document.querySelector(".job-progress-track");
 const jobProgress = document.querySelector("#job-progress");
 const jobProgressLabel = document.querySelector("#job-progress-label");
 const jobError = document.querySelector("#job-error");
@@ -64,10 +62,14 @@ const limits = {
   maxSegmentsPerRecipient: composerConfig.maxSegmentsPerRecipient ?? 1,
 };
 const pollIntervalMs = composerConfig.pollIntervalMs ?? 3000;
+const isLocalMockPreview =
+  composerConfig.mockAdminFlowOnLocalhost === true &&
+  ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname);
 const isBroadcastEnvironment = core.isAllowedBroadcastEnvironment(
   window.location,
   config.adminBroadcastHosts,
 );
+const canSubmitBroadcast = isBroadcastEnvironment || isLocalMockPreview;
 
 let currentUser = null;
 let currentJwt = "";
@@ -165,20 +167,20 @@ function updateComposer() {
   const progress = Math.min((metrics.septets / 160) * 100, 100);
 
   characterCount.textContent = formatNumber(metrics.characters);
-  septetCount.textContent = metrics.isGsm ? formatNumber(metrics.septets) : "—";
+  messageCharacterCount.textContent = formatNumber(metrics.characters);
   segmentCount.textContent = formatNumber(metrics.segments);
   remainingCount.textContent = metrics.isGsm ? formatNumber(metrics.remaining) : "—";
   segmentProgress.style.width = `${Number.isFinite(progress) ? progress : 0}%`;
   segmentUsage.textContent = metrics.isGsm
-    ? `${formatNumber(metrics.septets)} / 160 septets`
+    ? `${formatNumber(metrics.characters)} / 160 characters`
     : "Unsupported GSM-7 characters";
   encodingBadge.textContent = metrics.isGsm ? "GSM-7" : "Unsupported";
   encodingBadge.dataset.encoding = metrics.isGsm ? "gsm" : "unicode";
   messageForm.dataset.invalid = String(!metrics.isGsm);
   messageForm.dataset.overLimit = String(metrics.segments > 1);
   messageError.textContent =
-    currentEstimate.errors[0] ??
-    (!isBroadcastEnvironment && messageBody.value
+    (messageBody.value ? currentEstimate.errors[0] : null) ??
+    (!canSubmitBroadcast && messageBody.value
       ? "Broadcast submission is enabled only on the configured production host."
       : !core.canStartBroadcast(currentJobStatus)
         ? "Wait for the current broadcast to finish before starting another."
@@ -186,7 +188,7 @@ function updateComposer() {
   reviewButton.disabled =
     !currentEstimate.isValid ||
     submissionInProgress ||
-    !isBroadcastEnvironment ||
+    !canSubmitBroadcast ||
     !core.canStartBroadcast(currentJobStatus);
   costSubscribers.textContent = formatNumber(activeSubscriberCount);
   costSegments.textContent = formatNumber(currentEstimate.totalSegments);
@@ -194,6 +196,14 @@ function updateComposer() {
 }
 
 async function loadActiveCount() {
+  if (isLocalMockPreview) {
+    activeSubscriberCount = 100;
+    activeCount.textContent = formatNumber(activeSubscriberCount);
+    countStatus.textContent = "Mock subscriber total for local preview.";
+    updateComposer();
+    return;
+  }
+
   countController?.abort();
   const controller = new AbortController();
   countController = controller;
@@ -225,6 +235,25 @@ function showAdmin(user, jwt) {
   currentJwt = jwt;
   loginView.hidden = true;
   adminView.hidden = false;
+  if (isLocalMockPreview) {
+    activeSubscriberCount = 100;
+    activeCount.textContent = formatNumber(activeSubscriberCount);
+    countStatus.textContent = "Mock subscriber total for local preview.";
+    confirmationWarning.textContent =
+      "Local preview only. Sending simulates broadcast progress without contacting the production backend.";
+    confirmationWarning.classList.add("preview-warning");
+    renderJob({
+      jobId: "local-preview",
+      status: "completed",
+      totalRecipients: 100,
+      queued: 0,
+      sent: 98,
+      failed: 2,
+      remaining: 0,
+    });
+    return;
+  }
+
   loadActiveCount();
   restoreCurrentJob();
 }
@@ -242,7 +271,7 @@ function completeAuthentication(user, session) {
 }
 
 function openConfirmation() {
-  if (!isBroadcastEnvironment) {
+  if (!canSubmitBroadcast) {
     messageError.textContent =
       "Broadcast submission is enabled only on the configured production host.";
     return;
@@ -291,21 +320,64 @@ function clearCurrentJob() {
 
 function renderJob(job) {
   const percentage = core.getProgressPercentage(job);
+  const isComplete = job.status === "completed" && percentage === 100;
   currentJobStatus = job.status;
   jobLookupFailures = 0;
   jobPanel.hidden = false;
   jobStatus.textContent = job.status;
   jobStatus.dataset.status = job.status;
-  jobId.textContent = job.jobId;
-  jobTotal.textContent = formatNumber(job.totalRecipients);
-  jobQueued.textContent = formatNumber(job.queued);
   jobSent.textContent = formatNumber(job.sent);
   jobFailed.textContent = formatNumber(job.failed);
-  jobRemaining.textContent = formatNumber(job.remaining);
   jobProgress.style.width = `${percentage}%`;
+  jobProgressTrack.setAttribute("aria-valuenow", String(Math.round(percentage)));
   jobProgressLabel.textContent = `${Math.round(percentage)}%`;
-  dismissJobButton.hidden = !core.TERMINAL_JOB_STATUSES.has(job.status);
+  jobStatus.hidden = isComplete;
+  dismissJobButton.hidden = !isComplete;
   updateComposer();
+}
+
+function runLocalMockBroadcast(totalRecipients) {
+  const steps = [
+    { status: "queued", sent: 0, failed: 0, remaining: totalRecipients },
+    {
+      status: "sending",
+      sent: Math.floor(totalRecipients * 0.4),
+      failed: 0,
+      remaining: totalRecipients - Math.floor(totalRecipients * 0.4),
+    },
+    {
+      status: "sending",
+      sent: Math.max(0, totalRecipients - 3),
+      failed: 1,
+      remaining: Math.min(2, totalRecipients),
+    },
+    {
+      status: "completed",
+      sent: Math.max(0, totalRecipients - 1),
+      failed: Math.min(1, totalRecipients),
+      remaining: 0,
+    },
+  ];
+  const generation = ++pollGeneration;
+  let stepIndex = 0;
+
+  function advance() {
+    if (generation !== pollGeneration) return;
+
+    const step = steps[stepIndex];
+    renderJob({
+      jobId: "local-preview",
+      totalRecipients,
+      queued: step.remaining,
+      ...step,
+    });
+    stepIndex += 1;
+    if (stepIndex < steps.length) {
+      pollTimer = window.setTimeout(advance, 1200);
+    }
+  }
+
+  advance();
 }
 
 async function pollJob(id, generation = ++pollGeneration) {
@@ -326,8 +398,7 @@ async function pollJob(id, generation = ++pollGeneration) {
       jobLookupFailures += 1;
       if (jobLookupFailures >= 3) {
         jobError.textContent =
-          "The job could not be found after several attempts. Dismiss it to clear the saved job.";
-        dismissJobButton.hidden = false;
+          "The job could not be found after several attempts.";
         return;
       }
     }
@@ -341,7 +412,6 @@ function restoreCurrentJob() {
   if (storedJobId) {
     currentJobStatus = "restoring";
     jobPanel.hidden = false;
-    jobId.textContent = storedJobId;
     jobStatus.textContent = "Restoring…";
     pollJob(storedJobId);
     updateComposer();
@@ -367,6 +437,13 @@ async function submitConfirmedBroadcast(confirmedMessage) {
   const attempt = attemptStore.beginConfirmedAttempt(confirmedMessage);
 
   try {
+    if (isLocalMockPreview) {
+      confirmationDialog.close();
+      attemptStore.clear();
+      runLocalMockBroadcast(currentEstimate.recipients);
+      return;
+    }
+
     const result = await api.submitBroadcast(
       currentJwt,
       attempt.message,
@@ -411,6 +488,13 @@ async function submitConfirmedBroadcast(confirmedMessage) {
 loginForm.addEventListener("submit", (event) => {
   event.preventDefault();
   if (!loginForm.reportValidity()) return;
+
+  if (isLocalMockPreview) {
+    loginForm.reset();
+    setLoginStatus("");
+    showAdmin(null, "");
+    return;
+  }
 
   if (!userPool) {
     setLoginStatus("The authentication service is unavailable.", "error");
@@ -484,7 +568,7 @@ dismissJobButton.addEventListener("click", () => {
 
 updateComposer();
 
-if (userPool) {
+if (!isLocalMockPreview && userPool) {
   const storedUser = userPool.getCurrentUser();
   if (storedUser) {
     storedUser.getSession((error, session) => {

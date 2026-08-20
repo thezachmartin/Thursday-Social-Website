@@ -38,6 +38,12 @@ Only explicitly allowlisted HTTPS production hosts can confirm and submit.
 Localhost, `file://`, LAN, test, and staging previews can validate and estimate
 messages, but cannot send a production broadcast.
 
+When `mockAdminFlowOnLocalhost` is enabled in `config.js`, opening `/admin/` on
+`localhost`, `127.0.0.1`, or `[::1]` accepts any valid, non-empty login form
+values without contacting Cognito and uses mock subscriber data. Review and
+confirmation remain available, but Send simulates queued, sending, and completed
+progress entirely in the browser without calling the production backend.
+
 Confirmed submissions use a browser-generated, cryptographically random
 idempotency key. A retry of the same uncertain request reuses its key; editing the
 message or intentionally beginning another broadcast creates a new key. The
