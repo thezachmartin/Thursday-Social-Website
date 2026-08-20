@@ -98,8 +98,8 @@
 
             <div class="message-stats" aria-live="polite">
               <div class="message-stat">
-                <span>Septets</span>
-                <strong id="septet-count">0</strong>
+                <span>Characters</span>
+                <strong id="message-character-count">0</strong>
               </div>
               <div class="message-stat">
                 <span>Segments</span>
@@ -165,30 +165,30 @@
 
             <section id="job-panel" class="job-panel" aria-labelledby="job-title" hidden>
               <div class="job-heading">
-                <div>
-                  <p class="section-kicker">Broadcast progress</p>
-                  <h2 id="job-title">Current job</h2>
-                </div>
+                <p id="job-title" class="section-kicker">Broadcast progress</p>
                 <strong id="job-status" class="job-status">Preparing</strong>
+                <button id="dismiss-job" class="secondary-button" type="button" hidden>
+                  Dismiss
+                </button>
               </div>
               <dl class="job-stats">
-                <div><dt>Total</dt><dd id="job-total">—</dd></div>
-                <div><dt>Queued</dt><dd id="job-queued">—</dd></div>
                 <div><dt>Sent</dt><dd id="job-sent">—</dd></div>
                 <div><dt>Failed</dt><dd id="job-failed">—</dd></div>
-                <div><dt>Remaining</dt><dd id="job-remaining">—</dd></div>
               </dl>
-              <div class="job-progress-track" aria-hidden="true">
-                <span id="job-progress"></span>
-              </div>
-              <div class="job-progress-caption">
+              <div class="job-progress-row">
+                <div
+                  class="job-progress-track"
+                  role="progressbar"
+                  aria-label="Broadcast progress"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  aria-valuenow="0"
+                >
+                  <span id="job-progress"></span>
+                </div>
                 <span id="job-progress-label">0%</span>
-                <span>Job ID: <code id="job-id"></code></span>
               </div>
               <p id="job-error" class="composer-error" role="status" aria-live="polite"></p>
-              <button id="dismiss-job" class="secondary-button" type="button" hidden>
-                Dismiss result
-              </button>
             </section>
           </aside>
         </div>
@@ -199,7 +199,7 @@
       <div class="confirmation-content">
         <p class="admin-kicker">Final confirmation</p>
         <h2>Send this broadcast?</h2>
-        <p class="danger-warning">
+        <p id="confirmation-warning" class="danger-warning">
           Confirming sends a real SMS to every opted-in subscriber.
         </p>
         <div>
@@ -214,9 +214,7 @@
         </dl>
         <div class="confirmation-actions">
           <button id="cancel-send" class="secondary-button" type="button">Cancel</button>
-          <button id="confirm-send" class="send-button" type="button">
-            Confirm and send SMS
-          </button>
+          <button id="confirm-send" class="send-button" type="button">Send</button>
         </div>
       </div>
     </dialog>

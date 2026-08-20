@@ -14,6 +14,7 @@ window.THURSDAY_SOCIAL_CONFIG = {
     maxRecipients: 10000,
     maxSegmentsPerRecipient: 1,
     pollIntervalMs: 3000,
+    mockAdminFlowOnLocalhost: true,
   },
   cognito: {
     region: "us-east-1",
