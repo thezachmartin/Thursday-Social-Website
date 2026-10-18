@@ -8,7 +8,10 @@ and the authenticated SMS broadcast portal is at `/admin/`.
 The homepage uses `assets/background.mp4`, a muted, looping H.264 video optimized
 for web playback. It fills the viewport, cropping from the center as needed; the
 portrait clip is cropped more on wide screens. A dark overlay keeps the signup
-content readable.
+content readable. The video, poster fallback, and overlay share one fixed layer
+sized to the large viewport so mobile browser controls cannot expose a separate
+image or colored border. The background extends into phone safe areas while the
+signup content stays clear of notches and the home indicator.
 
 `assets/background-poster.jpg` provides a still-image fallback while loading,
 when playback is unavailable, or when JavaScript is disabled. Visitors who prefer

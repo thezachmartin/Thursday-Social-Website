@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta
       name="description"
       content="Join Thursday Social and receive the weekly meetup location by text."
@@ -17,18 +17,19 @@
     <link rel="stylesheet" href="./styles.css">
   </head>
   <body>
-    <video
-      id="background-video"
-      class="background"
-      data-src="./assets/background.mp4"
-      preload="none"
-      muted
-      loop
-      playsinline
-      poster="./assets/background-poster.jpg"
-      aria-hidden="true"
-    ></video>
-    <div class="overlay" aria-hidden="true"></div>
+    <div class="backdrop" aria-hidden="true">
+      <video
+        id="background-video"
+        class="background"
+        data-src="./assets/background.mp4"
+        preload="none"
+        muted
+        loop
+        playsinline
+        poster="./assets/background-poster.jpg"
+      ></video>
+      <div class="overlay"></div>
+    </div>
 
     <main class="signup">
       <header class="brand">
