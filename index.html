@@ -18,17 +18,16 @@
   </head>
   <body>
     <video
+      id="background-video"
       class="background"
-      autoplay
+      data-src="./assets/background.mp4"
+      preload="none"
       muted
       loop
       playsinline
       poster="./assets/background-poster.jpg"
       aria-hidden="true"
-    >
-      <source src="./assets/background.webm" type="video/webm">
-      <source src="./assets/background.mp4" type="video/mp4">
-    </video>
+    ></video>
     <div class="overlay" aria-hidden="true"></div>
 
     <main class="signup">
@@ -112,6 +111,7 @@
       </div>
     </main>
 
+    <script src="./background-video.js"></script>
     <script src="./config.js"></script>
     <script src="./app.js"></script>
   </body>
