@@ -3,6 +3,19 @@
 The static site is deployed with GitHub Pages. The subscriber signup is at `/`,
 and the authenticated SMS broadcast portal is at `/admin/`.
 
+## Signup background video
+
+The homepage uses `assets/background.mp4`, a muted, looping H.264 video optimized
+for web playback. It fills the viewport, cropping from the center as needed; the
+portrait clip is cropped more on wide screens. A dark overlay keeps the signup
+content readable.
+
+`assets/background-poster.jpg` provides a still-image fallback while loading,
+when playback is unavailable, or when JavaScript is disabled. Visitors who prefer
+reduced motion see the still image without loading or playing the video.
+To replace the clip, update both assets, keeping the MP4 H.264-compatible with
+fast-start metadata and no audio track.
+
 ## Admin frontend configuration
 
 Public browser configuration lives in `config.js`:

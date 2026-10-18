@@ -1,7 +1,7 @@
 :root {
   color-scheme: dark;
   font-family: "DM Sans", sans-serif;
-  background: #004806;
+  background: #004806 url("./assets/background-poster.jpg") center / cover fixed;
   color: #fffaf0;
 }
 
@@ -31,8 +31,8 @@ body {
 .overlay {
   z-index: -1;
   background:
-    linear-gradient(rgb(0 35 5 / 18%), rgb(0 24 3 / 35%)),
-    radial-gradient(circle at center, transparent 20%, rgb(0 24 3 / 42%));
+    linear-gradient(rgb(0 0 0 / 35%), rgb(0 0 0 / 48%)),
+    radial-gradient(circle at center, transparent 20%, rgb(0 0 0 / 30%));
 }
 
 .signup {
