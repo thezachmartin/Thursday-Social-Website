@@ -14,9 +14,15 @@ image or colored border. The background extends into phone safe areas while the
 signup content stays clear of notches and the home indicator.
 
 The signup page fits a single small viewport (`100svh`) without page scrolling.
+Its body is fixed to the viewport because `overflow: hidden` alone can leave an
+unwanted document scroll indicator on iOS.
 Logo size and spacing adapt to screen height, with a two-column layout on short
 landscape screens. The form and confirmation share the same viewport, independently
 of the taller background layer.
+
+The homepage stylesheet URL in `index.html` includes a version query so returning
+visitors fetch the updated mobile layout and smaller logo. Bump this version when
+changing `styles.css` to avoid reusing a cached stylesheet after deployment.
 
 `assets/background-poster.jpg` provides a still-image fallback while loading,
 when playback is unavailable, or when JavaScript is disabled. Visitors who prefer
