@@ -13,6 +13,11 @@ sized to the large viewport so mobile browser controls cannot expose a separate
 image or colored border. The background extends into phone safe areas while the
 signup content stays clear of notches and the home indicator.
 
+The signup page fits a single small viewport (`100svh`) without page scrolling.
+Logo size and spacing adapt to screen height, with a two-column layout on short
+landscape screens. The form and confirmation share the same viewport, independently
+of the taller background layer.
+
 `assets/background-poster.jpg` provides a still-image fallback while loading,
 when playback is unavailable, or when JavaScript is disabled. Visitors who prefer
 reduced motion see the still image without loading or playing the video.

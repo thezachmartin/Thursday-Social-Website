@@ -9,10 +9,15 @@
   box-sizing: border-box;
 }
 
+html {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 body {
-  min-height: 100svh;
+  height: 100svh;
   margin: 0;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 .backdrop {
@@ -53,11 +58,10 @@ body {
   z-index: 1;
   display: grid;
   width: min(100% - 2rem, 29rem);
-  min-height: 100svh;
+  height: 100svh;
   margin-inline: auto;
-  padding-block: clamp(2rem, 8vh, 5rem);
-  padding-top: max(clamp(2rem, 8vh, 5rem), env(safe-area-inset-top));
-  padding-bottom: max(clamp(2rem, 8vh, 5rem), env(safe-area-inset-bottom));
+  padding-top: max(clamp(0.5rem, 2svh, 1.5rem), env(safe-area-inset-top));
+  padding-bottom: max(clamp(0.5rem, 2svh, 1.5rem), env(safe-area-inset-bottom));
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
   place-content: center;
@@ -65,8 +69,8 @@ body {
 }
 
 .brand {
-  width: min(100%, 16rem);
-  margin: 0 auto 1.75rem;
+  width: min(85.5%, 13.68rem, 22.23svh);
+  margin: 0 auto clamp(0.5rem, 2svh, 1.75rem);
 }
 
 .brand-logo {
@@ -85,7 +89,7 @@ h1 {
 
 .signup-form {
   display: grid;
-  gap: 0.9rem;
+  gap: clamp(0.5rem, 1.5svh, 0.9rem);
 }
 
 .signup-form[hidden] {
@@ -300,9 +304,82 @@ button:disabled {
 }
 
 .description-secondary {
-  margin-top: 1.25rem;
+  margin-top: clamp(0.5rem, 2svh, 1.25rem);
   font-size: clamp(0.99rem, 3.85vw, 1.155rem);
   font-style: italic;
+}
+
+@media (max-height: 700px) {
+  .field {
+    padding-block: 0.6rem;
+  }
+
+  button {
+    min-height: 3rem;
+  }
+
+  .signup-success {
+    gap: 0.5rem;
+    padding: 1rem;
+  }
+
+  .success-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: 1.5rem;
+  }
+
+  .success-message {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-height: 500px) and (min-width: 500px) {
+  .signup {
+    width: min(100% - 2rem, 52rem);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+    grid-template-areas: "brand form" "description form";
+    column-gap: 1.5rem;
+    align-content: center;
+  }
+
+  .brand {
+    grid-area: brand;
+    width: min(85.5%, 27.36svh);
+  }
+
+  .signup-form {
+    grid-area: form;
+    align-self: center;
+  }
+
+  .signup:has(.signup-success:not([hidden])) .brand {
+    display: none;
+  }
+
+  .signup-success {
+    grid-area: 1 / 1 / -1 / -1;
+  }
+
+  #signup-description {
+    grid-area: description;
+  }
+
+  .description-primary {
+    font-size: 1rem;
+  }
+
+  .description-secondary {
+    font-size: 0.9rem;
+  }
+
+  .signup-success h2 {
+    font-size: 1.5rem;
+  }
+
+  .success-icon {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
